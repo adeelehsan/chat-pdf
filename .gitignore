@@ -15,6 +15,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
@@ -180,7 +181,7 @@ backend/vector_store/
 backend/users.db
 
 # frontend
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -193,7 +194,7 @@ backend/users.db
 /coverage
 
 # next.js
-/.next/
+.next/
 /out/
 
 # production
