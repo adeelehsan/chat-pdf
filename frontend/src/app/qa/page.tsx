@@ -196,10 +196,16 @@ export default function QAPage() {
                     <label htmlFor="question" className="sr-only">Question</label>
                     <textarea
                       id="question"
-                      rows={1}
+                      rows={3}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none text-black"
                       placeholder="Ask a question..."
                       {...register('question', { required: 'Please enter a question' })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit(onSubmit)();
+                        }
+                      }}
                     />
                     {errors.question && (
                       <p className="mt-1 text-sm text-red-600">{errors.question.message}</p>
