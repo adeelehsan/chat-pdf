@@ -8,6 +8,16 @@ type User = {
   username: string;
 };
 
+// Define an interface for API errors
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 type AuthContextType = {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
@@ -64,11 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: true, message: response.data.message };
       }
       return { success: false, message: response.data.message };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration error:', error);
+      const apiError = error as ApiError;
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Registration failed' 
+        message: apiError.response?.data?.message || 'Registration failed' 
       };
     }
   };
@@ -77,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     AuthService.logout();
     localStorage.removeItem('user');
     setUser(null);
-    router.push('/auth/login');
+    router.push('/auth/login/');
   };
 
   return (

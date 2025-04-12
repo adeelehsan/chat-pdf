@@ -12,16 +12,20 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.push('/dashboard');
+        router.push('/dashboard/');
       } else {
-        router.push('/auth/login');
+        router.push('/auth/login/');
       }
     }
   }, [user, isLoading, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <LoadingSpinner />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <h1 className="text-2xl font-semibold mb-4">PDF Chat Application</h1>
+      <div className="text-center">
+        <LoadingSpinner />
+        <p className="mt-4 text-gray-600">Redirecting...</p>
+      </div>
     </div>
   );
 }

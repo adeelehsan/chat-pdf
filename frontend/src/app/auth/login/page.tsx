@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -13,10 +13,17 @@ type LoginInputs = {
 };
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard/');
+    }
+  }, [user, authLoading, router]);
   
   const {
     register,
@@ -31,7 +38,7 @@ export default function LoginPage() {
     try {
       const success = await login(data.username, data.password);
       if (success) {
-        router.push('/dashboard');
+        router.push('/dashboard/');
       } else {
         setError('Invalid username or password');
       }
@@ -42,6 +49,20 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading spinner if checking auth status
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // Don't render the login form if already logged in
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -102,7 +123,7 @@ export default function LoginPage() {
           </div>
           
           <div className="text-sm text-center">
-            <Link href="/auth/register" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/auth/register/" className="font-medium text-blue-600 hover:text-blue-500">
               Sign up
             </Link>
           </div>

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { PDFService, getCompanies } from '@/lib/api';
+import { PDFService } from '@/lib/api';
 import Header from '@/components/Header';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -20,12 +20,20 @@ enum ProcessingStatus {
   ERROR = 'error',
 }
 
+// Define a more specific error type
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 export default function Dashboard() {
   const [status, setStatus] = useState<ProcessingStatus>(ProcessingStatus.IDLE);
   const [error, setError] = useState('');
   const [companyNumber, setCompanyNumber] = useState('');
-  const [indexedCompanies, setIndexedCompanies] = useState<string[]>([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(true);
   const router = useRouter();
 
   const {
@@ -33,23 +41,6 @@ export default function Dashboard() {
     handleSubmit,
     formState: { errors },
   } = useForm<CompanyFormInputs>();
-
-  // Load indexed companies (we still keep this to refresh after processing)
-  useEffect(() => {
-    async function fetchIndexedCompanies() {
-      try {
-        setLoadingCompanies(true);
-        const companies = await getCompanies();
-        setIndexedCompanies(companies);
-      } catch (err) {
-        console.error('Failed to fetch indexed companies:', err);
-      } finally {
-        setLoadingCompanies(false);
-      }
-    }
-
-    fetchIndexedCompanies();
-  }, []);
 
   const onSubmit: SubmitHandler<CompanyFormInputs> = async (data) => {
     setError('');
@@ -67,13 +58,10 @@ export default function Dashboard() {
       // Step 3: Complete
       setStatus(ProcessingStatus.COMPLETED);
       
-      // Refresh the list of indexed companies (keep this for state consistency)
-      const companies = await getCompanies();
-      setIndexedCompanies(companies);
-      
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus(ProcessingStatus.ERROR);
-      setError(err.response?.data?.message || 'An error occurred');
+      const error = err as ApiError;
+      setError(error.response?.data?.message || error.message || 'An error occurred');
       console.error(err);
     }
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -14,20 +14,24 @@ type RegisterInputs = {
 };
 
 export default function RegisterPage() {
-  const { register: registerUser } = useAuth();
+  const { register: registerUser, user, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const router = useRouter();
   
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard/');
+    }
+  }, [user, authLoading, router]);
+  
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<RegisterInputs>();
-
-  const password = watch('password');
 
   const onSubmit: SubmitHandler<RegisterInputs> = async (data) => {
     setIsLoading(true);
@@ -39,7 +43,7 @@ export default function RegisterPage() {
       if (result.success) {
         setMessage(result.message);
         // Redirect to dashboard after short delay
-        setTimeout(() => router.push('/dashboard'), 1500);
+        setTimeout(() => router.push('/dashboard/'), 1500);
       } else {
         setError(result.message);
       }
@@ -50,6 +54,20 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading spinner if checking auth status
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // Don't render the register form if already logged in
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -117,7 +135,7 @@ export default function RegisterPage() {
           </div>
           
           <div className="text-sm text-center">
-            <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/auth/login/" className="font-medium text-blue-600 hover:text-blue-500">
               Sign in
             </Link>
           </div>
