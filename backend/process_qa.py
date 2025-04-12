@@ -2,13 +2,13 @@ import os
 import glob
 from collections import OrderedDict
 from typing import Any
-import openai
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, PDFPlumberLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+
+from langchain_google_genai import GoogleGenerativeAIEmbeddings  # Add Google embeddings
+from langchain_google_genai import ChatGoogleGenerativeAI  # Add Google chat
 from langchain_community.vectorstores import FAISS
-from langchain_openai import ChatOpenAI
 from langchain.schema import StrOutputParser
 from langchain.prompts import ChatPromptTemplate
 import pypdf
@@ -17,20 +17,18 @@ import io
 import pytesseract
 from pdf2image import convert_from_path
 import tempfile
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # Load environment variables
 load_dotenv()
 
-# Get and check OpenAI API key
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is not set. Please set it in your .env file.")
+# Get and check Google API key instead of OpenAI
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY environment variable is not set. Please set it in your .env file.")
 
 # Print first few characters to verify key format without exposing the full key
-print(f"Using OpenAI API key starting with: {OPENAI_API_KEY[:5]}...")
-
-# Set the API key
-openai.api_key = OPENAI_API_KEY
+print(f"Using Google API key starting with: {GOOGLE_API_KEY[:5]}...")
 
 # Define paths
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloaded_pdfs")
@@ -41,7 +39,6 @@ os.makedirs(VECTOR_STORE_PATH, exist_ok=True)
 
 # Maximum number of vector stores to keep in memory simultaneously
 MAX_CACHE_SIZE = 5
-
 
 class LRUCache(OrderedDict):
     """Limited size dictionary that removes the least recently used items."""
@@ -68,22 +65,19 @@ class LRUCache(OrderedDict):
 class PDFProcessor:
     def __init__(self):
         try:
-            print("Initializing OpenAI embeddings...")
-            self.embeddings = OpenAIEmbeddings(
-                openai_api_key=OPENAI_API_KEY,
-                model="text-embedding-ada-002"  # Explicitly set the embedding model
-            )
+            self.embeddings = HuggingFaceEmbeddings(
+                                     model_name="sentence-transformers/all-MiniLM-L6-v2"
+                                     )
             self.vector_store = None
             
-            self.llm = ChatOpenAI(
-                model="gpt-3.5-turbo", 
-                temperature=0,
-                openai_api_key=OPENAI_API_KEY
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-2.5-pro-exp-03-25", 
+                temperature=0
             )
             self.company_vector_stores = LRUCache(MAX_CACHE_SIZE)
             self.download_path = DOWNLOAD_FOLDER
         except Exception as e:
-            print(f"Error initializing OpenAI services: {e}")
+            print(f"Error initializing Google AI services: {e}")
             import traceback
             traceback.print_exc()
             raise
@@ -313,12 +307,6 @@ class PDFProcessor:
         print(f"Created {len(chunks)} text chunks for processing")
         
         try:
-            # Try to create embeddings for a small sample first to verify API is working
-            print("Testing embedding generation with a sample...")
-            sample_text = chunks[0].page_content[:100]  # Just use the first 100 chars of first chunk
-            test_embedding = self.embeddings.embed_query(sample_text)
-            print(f"Sample embedding created successfully, dimension: {len(test_embedding)}")
-            
             # Create vector store for this company
             print("Creating FAISS vector store...")
             company_vector_store = FAISS.from_documents(chunks, self.embeddings)
